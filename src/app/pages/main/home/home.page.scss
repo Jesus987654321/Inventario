@@ -1,0 +1,30 @@
+ion-card{
+    gap: 100px;
+    padding: 5px 0;
+    border-radius:  5px;
+} 
+
+ion-content{
+    --padding-bottom: 70px;
+}
+
+ion-fab {
+    bottom: 70px; /* 70 SI ES ONLINE, 0 si es local Ajusta el valor según la cantidad de píxeles que deseas subir el footer */
+                   
+}
+
+#view-categories-button {
+    float: left;
+
+  }
+  
+  #search-button {
+    float: right;
+ 
+  }
+  
+  .image-icon {
+    font-size: 80px; /* Cambia este valor al tamaño que desees */
+  }  
+
+  

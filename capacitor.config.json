@@ -1,0 +1,6 @@
+{
+    "appId": "com.example.app",
+    "appName": "Inventario",
+    "webDir": "www",
+    "bundledWebRuntime": false
+  }
