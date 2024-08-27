@@ -14,7 +14,7 @@
   
       <div *ngSwitchCase="'unidades'">
   
-        <h1 class="ion-text-center">Productos por Unidades</h1>
+        <h1 class="ion-text-center">Producto por Unidad</h1>
          <!-----------------------------Mostrar imagen cuando existe------------------------>
         <br>
          <ion-avatar *ngIf="form.value.image">
@@ -35,7 +35,8 @@
           <ion-button (click)="changeProductType('granel')">Granel</ion-button>
         </div>
     
-        <p class="center-text">El boton verde es el boton seleccionado</p>
+        <p class="center-text" *ngIf="!product">El botón verde es el botón seleccionado</p>
+
 
        <!-------------------------INGRESAR CODIGO DE BARRAS MANUALMENTE-----------------------
 
@@ -151,7 +152,7 @@
       </div>
       <div *ngSwitchCase="'granel'">
 
-        <h1 class="ion-text-center">Productos por Graneles</h1>
+        <h1 class="ion-text-center">Producto por Granel</h1>
         <br>
         <ion-avatar *ngIf="form.value.image">
           <img [src]="form.value.image" />
@@ -174,7 +175,7 @@
           <ion-button  color="success"  (click)="changeProductType('granel')">Granel</ion-button>
         </div>
 
-        <p class="center-text">El boton verde es el boton seleccionado</p>
+        <p class="center-text" *ngIf="!product">El botón verde es el botón seleccionado</p>
 
           
        <!-------------------------INGRESAR CODIGO DE BARRAS MANUALMENTE-----------------------
