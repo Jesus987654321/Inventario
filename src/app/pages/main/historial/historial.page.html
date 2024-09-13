@@ -31,12 +31,12 @@
   <div style="display: flex;">
     <!---------------------------------------Buscador por nombre----------------------------------------------------------->
     <div style="flex: 1;">
-      <ion-searchbar style="width: 225px; height: 40px;"  placeholder="Buscar" [(ngModel)]="searchTerm" (ionInput)="filtrarPorNombre()"></ion-searchbar>
-    </div>
+      <ion-searchbar class="buscador" placeholder="Buscar" [(ngModel)]="searchTerm" (ionInput)="filtrarPorNombre()"></ion-searchbar>
+     </div>
     
     <!---------------------------------------Buscador por fecha----------------------------------------------------------->
-    <div style="margin-top: -10px;">
-      <ion-button color="primary" style="width: 80px; height: 10px;"   (click)="toggleCalendar()">{{ visible ? 'Ocultar calendario' : 'Mostrar calendario' }}</ion-button>
+    <div >
+      <ion-button color="primary" class="buscador-calendario"  (click)="toggleCalendar()">{{ visible ? 'Cerrar calendario' : 'Abrir calendario' }}</ion-button>
     </div>
   </div>
 
@@ -49,8 +49,8 @@
       <br>
       <div [hidden]="!visible">
         <ion-item *ngIf="visible">
-          <ion-datetime style="width: 150px; font-size: 14px;" displayFormat="DD/MMMM/YYYY" min="2020-01-01" max="2030-12-31" presentation="date" (ionChange)="onStartDateChange($event)"></ion-datetime>
-          <ion-datetime style="width: 150px; font-size: 14px;" displayFormat="DD/MMMM/YYYY" min="2020-01-01" max="2030-12-31" presentation="date" (ionChange)="onEndDateChange($event)"></ion-datetime>
+          <ion-datetime class="calendario" displayFormat="DD/MMMM/YYYY" min="2020-01-01" max="2030-12-31" presentation="date" (ionChange)="onStartDateChange($event)"></ion-datetime>
+          <ion-datetime class="calendario" displayFormat="DD/MMMM/YYYY" min="2020-01-01" max="2030-12-31" presentation="date" (ionChange)="onEndDateChange($event)"></ion-datetime>
         </ion-item>
       </div>
     </table>

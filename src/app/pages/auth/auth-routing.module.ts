@@ -9,7 +9,7 @@ const routes: Routes = [
     component: AuthPage
   },
   //{
-  //  path: 'sign-up',
+   // path: 'sign-up',
   //loadChildren: () => import('./sign-up/sign-up.module').then( m => m.SignUpPageModule)
   //},
   {

@@ -16,6 +16,9 @@ export class MainPage implements OnInit {
     { title: 'Perfil', url: '/main/profile', icon: 'person-outline'},
     { title: 'Historial', url: '/main/historial', icon: 'grid-outline'},
     { title: 'Soporte Tecnico', url: '/main/condiciones', icon: 'book-outline'},
+    //{ title: 'Web', url: 'https://inventario5.web.app/', icon: 'globe-outline'},
+    { title: 'APK', url: 'https://drive.google.com/file/d/1OWO2uanzPtBOFOyPRgTt8M894aoLzh_S/view?usp=sharing', icon: 'logo-android'},
+   
   ]
 
   router = inject(Router);
@@ -41,6 +44,9 @@ export class MainPage implements OnInit {
   //Cerrar sesion
   signOut() {
     this.firebaseSvc.signOut();
+  }
+  redirectTo(url: string) {
+    window.open(url, '_blank'); // Abre la URL en una nueva pestaña
   }
 
 }

@@ -68,81 +68,79 @@ export class HistorialPage implements OnInit {
  // }
 
   
-  generarPdfPorFechas() {
-    if (!this.startDate || !this.endDate) {
-        console.log('Por favor selecciona un rango de fechas.');
-        alert('Por favor selecciona un rango de fechas.');
-        return;
-    }
+ generarPdfPorFechas() {
+  if (!this.startDate || !this.endDate) {
+      console.log('Por favor selecciona un rango de fechas.');
+      alert('Por favor selecciona un rango de fechas.');
+      return;
+  }
+  
+  const startOfDay = new Date(this.startDate.getFullYear(), this.startDate.getMonth(), this.startDate.getDate());
+  const endOfDay = new Date(this.endDate.getFullYear(), this.endDate.getMonth(), this.endDate.getDate() + 1);
+  
+  let docDefinition = {
+      content: [],
+      header: {
+          margin: [0, 10, 0, 0],
+          text: { text: `Historial del Abasto La Perla de Oriente`, alignment: 'center' },
+      },
+      footer: function(currentPage, pageCount) {
+          return [
+              {
+                  text: 'Copyright © jesusmedina0921@gmail.com. Todos los derechos reservados.\n',
+                  alignment: 'center'
+              },
+              {
+                  text: `Página ${currentPage} de ${pageCount}`,
+                  alignment: 'center'
+              }
+          ];
+      },
+      styles: {
+          header: {
+              fontSize: 14,
+              bold: true,
+              margin: [0, 10, 0, 10],
+              color: 'white',
+              alignment: 'center'
+          },
+          tableHeader: {
+              bold: true,
+              fontSize: 12,
+              color: 'white',
+              fillColor: '#217283',
+              alignment: 'center'
+          },
+          tableExample: {
+              margin: [0, 5, 0, 15]
+          }
+      },
+  };
 
-    const startOfDay = new Date(this.startDate.getFullYear(), this.startDate.getMonth(), this.startDate.getDate());
-    const endOfDay = new Date(this.endDate.getFullYear(), this.endDate.getMonth(), this.endDate.getDate() + 1);
-    let docDefinition = {
-        content: [],
-        header: {
-            margin: [0, 10, 0, 0],
-            text: { text: `Historial del Abasto La Perla de Oriente`, alignment: 'center' },
-        },
-        footer: function(currentPage, pageCount) {
-            return [
-                {
-                    text: 'Copyright © jesusmedina0921@gmail.com. Todos los derechos reservados.\n',
-                    alignment: 'center'
-                },
-                {
-                    text: `Página ${currentPage} de ${pageCount}`,
-                    alignment: 'center'
-                }
-            ];
-        },
-        styles: {
-            header: {
-                fontSize: 14,
-                bold: true,
-                margin: [0, 10, 0, 10],
-                color: 'white',
-                alignment: 'center'
-            },
-            tableHeader: {
-                bold: true,
-                fontSize: 12,
-                color: 'white',
-                fillColor: '#217283',
-                alignment: 'center'
-            },
-            tableExample: {
-                margin: [0, 5, 0, 15]
-            }
-        },
-    };
-
-    this.historialesSubject.subscribe(historiales => {
-        const filteredHistoriales = historiales.filter(historial => {
-            const fecha = new Date(historial.fecha.seconds * 1000);
-            return fecha >= startOfDay && fecha < endOfDay;
-        });
-
-        const maxProductsPerPage = 11;
-        for (let i = 0; i < filteredHistoriales.length; i += maxProductsPerPage) {
-            const chunk = filteredHistoriales.slice(i, i + maxProductsPerPage);
-            const rows = [];
-            rows.push([
-                { text: 'Producto', style: 'tableHeader' },
-                { text: 'Accion', style: 'tableHeader' },
-                { text: 'Cantidad', style: 'tableHeader' },
-                { text: 'Fecha', style: 'tableHeader' },
-            ]);
-
-            chunk.forEach(historial => {
+  this.historialesSubject.subscribe(historiales => {
+      const filteredHistoriales = historiales.filter(historial => {
+          const fecha = new Date(historial.fecha.seconds * 1000);
+          return fecha >= startOfDay && fecha < endOfDay;
+      });
+      
+      const maxProductsPerPage = 11;
+      for (let i = 0; i < filteredHistoriales.length; i += maxProductsPerPage) {
+          const chunk = filteredHistoriales.slice(i, i + maxProductsPerPage);
+          const rows = [];
+          rows.push([
+              { text: 'Producto', style: 'tableHeader' },
+              { text: 'Accion', style: 'tableHeader' },
+              { text: 'Cantidad', style: 'tableHeader' },
+              { text: 'Fecha', style: 'tableHeader' },
+          ]);
+          chunk.forEach(historial => {
               const quantity = historial.tipo === 'Entrada' ? historial.cantidadAgregada : historial.cantidadSaliente;
               let displayText = '';
-          
               if (historial.producto.Peso) {
                   displayText = `${historial.producto.Peso} gramos`; // Show weight if it exists
               } else {
                   displayText = `${quantity} Unidades`; // Show quantity if weight does not exist
               }
-          
               rows.push([
                   { text: historial.producto.name, margin: [0, 10, 0, 5] },
                   { text: historial.tipo, margin: [0, 10, 0, 5] },
@@ -153,39 +151,39 @@ export class HistorialPage implements OnInit {
                   { text: this.formatDate(historial.fecha), margin: [0, 10, 0, 5] },
               ]);
           });
+          docDefinition.content.push({
+              table: {
+                  widths: ['*', '*', '*', '*'],
+                  body: rows
+              }
+          });
+          if (i + maxProductsPerPage < filteredHistoriales.length) {
+              docDefinition.content.push({ text: '', pageBreak: 'after' });
+          }
+      }
+      
+      if (filteredHistoriales.length === 0) {
+          docDefinition.content.push({ text: 'No se encontraron historiales en el rango de fechas seleccionado.', margin: [0, 20, 0, 20] });
+      }
 
-            docDefinition.content.push({
-                table: {
-                    widths: ['*', '*', '*', '*'],
-                    body: rows
-                }
-            });
-
-            if (i + maxProductsPerPage < filteredHistoriales.length) {
-                docDefinition.content.push({ text: '', pageBreak: 'after' });
-            }
-        }
-
-        if (filteredHistoriales.length === 0) {
-            docDefinition.content.push({ text: 'No se encontraron historiales en el rango de fechas seleccionado.', margin: [0, 20, 0, 20] });
-        }
-
-        this.pdfObject = pdfMake.createPdf(docDefinition);
-        if (this.platform.is('cordova')) { 
+      this.pdfObject = pdfMake.createPdf(docDefinition);
+      
+      // Mover la lógica de descarga aquí
+      if (this.platform.is('cordova')) { 
           this.pdfObject.getBuffer((buffer) => { 
-            var blob = new Blob([buffer], { type: 'application/pdf' }); // Cambiado el tipo a 'application/pdf' 
-            this.file.writeFile(this.file.dataDirectory, 'Historial_Calendario.pdf', blob, { replace: true }).then(fileEntry => { 
-              this.fileOpener.open(this.file.dataDirectory + 'Historial_Calendario.pdf', 'application/pdf') // Cambiado 'hello.pdf' a 'reporte.pdf' 
-                .then(() => console.log('File opened successfully')) 
-                .catch(e => console.log('Error opening file', e)); 
-            }); 
+              var blob = new Blob([buffer], { type: 'application/pdf' }); 
+              this.file.writeFile(this.file.dataDirectory, 'Historial_Calendario.pdf', blob, { replace: true }).then(fileEntry => { 
+                  this.fileOpener.open(this.file.dataDirectory + 'Historial_Calendario.pdf', 'application/pdf') 
+                      .then(() => console.log('File opened successfully')) 
+                      .catch(e => console.log('Error opening file', e)); 
+              }); 
           }); 
-          return true; // Retornar true si se cumple la condición 
-        } else { 
+          return true; 
+      } else { 
           this.pdfObject.download('Historial_Calendario.pdf'); 
-          return false; // Retornar false si no se cumple la condición 
-        } 
-    });
+          return false; 
+      } 
+  });
 }
 
 generarPdf(tipo: string) {
@@ -393,8 +391,17 @@ private getHeaderText(tipo: string): string {
   
   formatDate(timestamp: any): string {
     const date = new Date(timestamp.seconds * 1000); // Convertir el timestamp a una fecha
-    return this.datePipe.transform(date, 'EEEE d \'de\' MMMM \'del\' y \'a las\' h:mm a', 'es'); // Formatear la fecha en el idioma español
-  }
+    
+    // Obtener los componentes de la fecha
+    const dayOfWeek = this.datePipe.transform(date, 'EEEE', 'es'); // Día de la semana
+    const day = this.datePipe.transform(date, 'dd', 'es'); // Día del mes
+    const month = this.datePipe.transform(date, 'MM', 'es'); // Mes
+    const year = this.datePipe.transform(date, 'yyyy', 'es'); // Año
+    const time = this.datePipe.transform(date, 'h:mm a', 'es'); // Hora
+
+    // Formar la cadena final
+    return `${dayOfWeek} ${day}/${month} del ${year} a las ${time}`;
+}
 
 
 

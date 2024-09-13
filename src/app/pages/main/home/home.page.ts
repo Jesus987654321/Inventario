@@ -1,4 +1,4 @@
-import { Component, NgModule, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { Product } from 'src/app/models/product.model';
 import { User } from 'src/app/models/user.model';
 import { FirebaseService } from 'src/app/services/firebase.service';
@@ -23,19 +23,41 @@ import { Platform } from '@ionic/angular';
 
 
 export class HomePage implements OnInit {
-
+  originalProducts: Product[] = [];
   firebaseSvc = inject(FirebaseService);
   utilsSvc = inject(UtilsService);
   products: Product[] = [];
   loading: boolean = false;
   searchTerm: string = '';
   pdfObject: any;
+
+  isConnected: boolean = navigator.onLine; // Default to the current online status
   constructor(
     private historialService: HistorialService,
     public file:File,
     public fileOpener:FileOpener,
-    public platform: Platform
-  ) {}
+    public platform: Platform,
+    private changeDetector: ChangeDetectorRef
+  ) {this.initializeNetworkEvents();}
+
+
+  initializeNetworkEvents() {
+    // Check initial connection status
+    this.isConnected = navigator.onLine;
+
+    // Add event listeners for online and offline events
+    window.addEventListener('online', () => {
+      console.log('Conectado a Internet');
+      this.isConnected = true;
+      this.changeDetector.detectChanges(); // Notify Angular of the change
+    });
+
+    window.addEventListener('offline', () => {
+      console.log('Conexión a Internet perdida');
+      this.isConnected = false;
+      this.changeDetector.detectChanges(); // Notify Angular of the change
+    });
+  }
 
  
 
@@ -72,7 +94,7 @@ export class HomePage implements OnInit {
                 bold: true, 
                 fontSize: 12, 
                 color: 'white', 
-                fillColor: '#0054e9', // Cambiado a azul #0054e9 
+                fillColor: '#217283',
                 alignment: 'center' 
             }, 
             tableExample: { 
@@ -219,38 +241,44 @@ export class HomePage implements OnInit {
 
   //Orden de productos
   //Orden de productos
-  
-getProducts() {
-  // let path = `usuarios/${this.user().uid}/productos`;
-  let path = `productos`;
-  this.loading = true;
-  let query = [
-    orderBy('precio', 'desc'), // Ordenar por precio (opcional)
-  ];
-  this.firebaseSvc
-    .getCollectionData(path, query)
-    .subscribe({
-      next: (res: any) => {
-        this.products = res.map((product: Product) => {
-          if (product.stock_min && (product.Peso < product.stock_min || product.Cantidad < product.stock_min)) {
-            this.AlertaStockMinimo(product.name);
-          }
-          if (product.stock_max && (product.Peso > product.stock_max || product.Cantidad > product.stock_max)) {
-            this.AlertaStockMaximo(product.name);
-          }
-          return product;
-        });
-        this.loading = false;
-      },
-      error: (error) => {
-        console.error('Error al obtener los productos:', error);
-        // Manejar los errores apropiadamente
-      },
-    });
-}
-  
+  getProducts() {
+    let path = `productos`;
+    this.loading = true;
+    let query = [
+      orderBy('precio', 'desc'),
+    ];
+    this.firebaseSvc
+      .getCollectionData(path, query)
+      .subscribe({
+        next: (res: any) => {
+          this.products = res.map((product: Product) => {
+            if (product.stock_min && (product.Peso < product.stock_min || product.Cantidad < product.stock_min)) {
+              this.AlertaStockMinimo(product.name);
+            }
+            if (product.stock_max && (product.Peso > product.stock_max || product.Cantidad > product.stock_max)) {
+              this.AlertaStockMaximo(product.name);
+            }
+            return product;
+          });
+          this.originalProducts = [...this.products]; // Almacena los productos originales
+          this.loading = false;
+        },
+        error: (error) => {
+          console.error('Error al obtener los productos:', error);
+        },
+      });
+  }
   async addUpdateProduct(product?: Product) {
-
+    if (!this.isConnected) {
+      this.utilsSvc.presentToast({
+        message: 'Sin conexión a Internet. Por favor, intente más tarde.',
+        duration: 2000,
+        color: 'danger',
+        position: 'middle',
+        icon: 'alert-circle-outline'
+      });
+      return; // Exit if there is no connection
+    }
     let success = await this.utilsSvc.presentModal({
       component: AddUpdateProductComponent,
       cssClass: 'add-update-modal',
@@ -351,35 +379,61 @@ MostrarStockMaxConPuntos(product: Product): string {
     
 
 
-
   async EntradaProducto(product: Product) {
-    try {
-        const alert = await this.utilsSvc.presentAlert({
-            header: 'Agregar cantidad del Producto',
-            message: '¿Está seguro de agregarle entrada al producto? ¡Esta acción es irreversible!',
-            mode: 'ios',
-            inputs: [
-                {
-                    type: 'number',
-                    placeholder: product.Peso !== undefined ? 'Ingrese el peso entrante' : 'Ingrese las unidades entrante'
-                }
-            ],
-            buttons: [
-                {
-                    text: 'Cancelar',
-                },
-                {
-                    text: 'Agregar Producto',
-                    handler: async (data) => {
-                        let cantidadAgregada = parseFloat(data[0]);
-                        if (product.Peso !== null && product.Peso !== undefined) {
-                            product.Peso += cantidadAgregada;
-                        } else {
-                            product.Cantidad += cantidadAgregada;
+    const alert = await this.utilsSvc.presentAlert({
+        header: 'Agregar cantidad del Producto',
+        message: '¿Está seguro de agregarle entrada al producto? ¡Esta acción es irreversible!',
+        mode: 'ios',
+        inputs: [
+            {
+                type: 'number',
+                placeholder: product.Peso !== undefined ? 'Ingrese el peso entrante' : 'Ingrese las unidades entrante'
+            }
+        ],
+        buttons: [
+            {
+                text: 'Cancelar',
+            },
+            {
+                text: 'Agregar Producto',
+                handler: async (data) => {
+                    const loading = await this.utilsSvc.loading(); // Mostrar loading
+                    await loading.present(); // Presentar loading
+                    try {
+                        if (!this.isConnected) {
+                            this.utilsSvc.presentToast({
+                                message: 'Sin conexión a Internet. Por favor, intente más tarde.',
+                                duration: 2000,
+                                color: 'danger',
+                                position: 'middle',
+                                icon: 'alert-circle-outline'
+                            });
+                            return; // Salir si no hay conexión
                         }
+                        let cantidadAgregada = parseFloat(data[0].trim()); // Trim the input
+                        // Validate that the input is not empty or whitespace and greater than 0
+                        if (isNaN(cantidadAgregada) || cantidadAgregada <= 0) {
+                            this.utilsSvc.presentToast({
+                                message: 'La cantidad debe ser mayor a 0',
+                                duration: 2000,
+                                color: 'danger',
+                                position: 'middle'
+                            });
+                            return; // Salir si la cantidad es 0 o menor
+                        }
+
+               
+                        if (product.Peso !== null && product.Peso !== undefined) {
+                            product.Peso += cantidadAgregada; // Actualizar peso
+                        } else {
+                            product.Cantidad += cantidadAgregada; // Actualizar cantidad
+                        }
+
                         const registro = { tipo: 'Entrada', producto: product, cantidadAgregada: cantidadAgregada, fecha: new Date() };
+                      ;
+
+
                         this.historialService.agregarRegistro(registro);
-                        // Call the function to update the product in the product collection
                         await this.actualizar_documento(product);
                         this.utilsSvc.dismissModal({ success: true });
                         this.utilsSvc.presentToast({
@@ -389,23 +443,25 @@ MostrarStockMaxConPuntos(product: Product): string {
                             position: 'middle',
                             icon: 'checkmark-circle-outline'
                         });
+                    } catch (error) {
+                        console.error(error);
+                        this.utilsSvc.presentToast({
+                            message: error.message,
+                            duration: 1500,
+                            color: 'danger',
+                            position: 'middle',
+                            icon: 'alert-circle-outline'
+                        });
+                    } finally {
+                        loading.dismiss(); // Ocultar loading
                     }
-                },
-            ]
-        });
-    } catch (error) {
-        console.error(error);
-        this.utilsSvc.presentToast({
-            message: error.message,
-            duration: 1500,
-            color: 'danger',
-            position: 'middle',
-            icon: 'alert-circle-outline'
-        });
-    }
+                }
+            },
+        ]
+    });
 }
 async SalidaProducto(product: Product) {
-  // Verificar si el peso es 0 y si el producto tiene peso
+  // Verificar si el peso y la cantidad son cero
   if (product.Peso === 0) {
     this.utilsSvc.presentToast({
       message: 'No se puede agregar salida a un producto en 0',
@@ -422,64 +478,103 @@ async SalidaProducto(product: Product) {
       color: 'danger',
       position: 'middle'
     });
-    return; // Salir del método si el peso es 0
+    return; // Salir del método si la cantidad es 0
   }
-
   const alert = await this.utilsSvc.presentAlert({
-    header: 'Agregar salida del Producto',
-    message: '¿Está seguro de agregarle salida al producto? ¡Esta acción es irreversible!',
-    mode: 'ios',
-    inputs: [
-      {
-        type: 'number',
-        placeholder: product.Peso ? 'Ingrese el peso saliente' : 'Ingrese las unidades saliente'
-      }
-    ],
-    buttons: [
-      {
-        text: 'Cancelar',
-      },
-      {
-        text: 'Agregar Salida',
-        handler: async (data) => {
-          let cantidadSaliente = parseFloat(data[0]);
-          if (product.Peso) {
-            if (cantidadSaliente > product.Peso) {
-              this.utilsSvc.presentToast({
-                message: 'La salida no puede ser superior al stock actual',
-                duration: 2000,
-                color: 'danger',
-                position: 'middle'
-              });
-              return;
-            }
-            product.Peso -= cantidadSaliente;
-          } else {
-            if (cantidadSaliente > product.Cantidad) {
-              this.utilsSvc.presentToast({
-                message: 'La salida no puede ser superior al stock actual',
-                duration: 2000,
-                color: 'danger',
-                position: 'middle'
-              });
-              return;
-            }
-            product.Cantidad -= cantidadSaliente;
+      header: 'Agregar salida del Producto',
+      message: '¿Está seguro de agregarle salida al producto? ¡Esta acción es irreversible!',
+      mode: 'ios',
+      inputs: [
+          {
+              type: 'number',
+              placeholder: product.Peso ? 'Ingrese el peso saliente' : 'Ingrese las unidades saliente'
           }
-          const registro = { tipo: 'Salida', producto: product, cantidadSaliente: cantidadSaliente, fecha: new Date() };
-          this.historialService.agregarRegistro(registro);
-          await this.actualizar_documento(product);
-          this.utilsSvc.dismissModal({ success: true });
-          this.utilsSvc.presentToast({
-            message: 'Se agregó la Salida con éxito',
-            duration: 1500,
-            color: 'success',
-            position: 'middle',
-            icon: 'checkmark-circle-outline'
-          });
-        }
-      },
-    ]
+      ],
+      buttons: [
+          {
+              text: 'Cancelar',
+          },
+          {
+              text: 'Agregar Salida',
+              handler: async (data) => {
+                  const loading = await this.utilsSvc.loading(); // Mostrar loading
+                  await loading.present(); // Presentar loading
+                  try {
+                      if (!this.isConnected) {
+                          this.utilsSvc.presentToast({
+                              message: 'Sin conexión a Internet. Por favor, intente más tarde.',
+                              duration: 2000,
+                              color: 'danger',
+                              position: 'middle',
+                              icon: 'alert-circle-outline'
+                          });
+                          return; // Salir si no hay conexión
+                      }
+                      let cantidadSaliente = parseFloat(data[0].trim()); // Trim the input
+                      // Validate that the input is not empty or whitespace and greater than 0
+                      if (isNaN(cantidadSaliente) || cantidadSaliente <= 0) {
+                          this.utilsSvc.presentToast({
+                              message: 'La cantidad debe ser mayor a 0',
+                              duration: 2000,
+                              color: 'danger',
+                              position: 'middle'
+                          });
+                          return; // Salir si la cantidad es 0 o menor
+                      }
+                     
+
+                      if (product.Peso) {
+                          if (cantidadSaliente > product.Peso) {
+                              this.utilsSvc.presentToast({
+                                  message: 'La salida no puede ser superior al stock actual',
+                                  duration: 2000,
+                                  color: 'danger',
+                                  position: 'middle'
+                              });
+                              return;
+                          }
+                          product.Peso -= cantidadSaliente;
+                      } else {
+                          if (cantidadSaliente > product.Cantidad) {
+                              this.utilsSvc.presentToast({
+                                  message: 'La salida no puede ser superior al stock actual',
+                                  duration: 2000,
+                                  color: 'danger',
+                                  position: 'middle'
+                              });
+                              return;
+                          }
+                          product.Cantidad -= cantidadSaliente;
+                      }
+
+                     
+                      const registro = { tipo: 'Salida', producto: product, cantidadSaliente: cantidadSaliente, fecha: new Date() };
+
+                      this.historialService.agregarRegistro(registro);
+                      await this.actualizar_documento(product);
+                      this.utilsSvc.dismissModal({ success: true });
+                      this.utilsSvc.presentToast({
+                          message: 'Se agregó la Salida con éxito',
+                          duration: 1500,
+                          color: 'success',
+                          position: 'middle',
+                          icon: 'checkmark-circle-outline'
+                      });
+                  } catch (error) {
+                      console.error(error);
+                      this.utilsSvc.presentToast({
+                          message: error.message,
+                          duration: 1500,
+                          color: 'danger',
+                          position: 'middle',
+                          icon: 'alert-circle-outline'
+                      });
+                  } finally {
+                      loading.dismiss(); // Ocultar loading
+                  }
+              }
+          },
+      ]
   });
 }
   async actualizar_documento(product: Product) {
@@ -496,6 +591,16 @@ async SalidaProducto(product: Product) {
     }
   
     async confirmDeleteProduct(product: Product) {
+      if (!this.isConnected) {
+        this.utilsSvc.presentToast({
+          message: 'Sin conexión a Internet. Por favor, intente más tarde.',
+          duration: 2000,
+          color: 'danger',
+          position: 'middle',
+          icon: 'alert-circle-outline'
+        });
+        return; // Exit if there is no connection
+      }
     this.utilsSvc.presentAlert({
       header: 'Borrar Producto',
       message: '¿Está seguro de borrar el producto? Esta acción es irreversible!',
@@ -564,13 +669,14 @@ async SalidaProducto(product: Product) {
 
   filterProducts() {
     if (this.searchTerm.trim() !== '') {
-      const searchTermLower = this.searchTerm.toLowerCase(); // Convertir el término de búsqueda a minúsculas
-      this.products = this.products.filter(product => {
-        return product.name.toLowerCase().includes(searchTermLower);
+      const searchTermLower = this.searchTerm.toLowerCase();
+      this.products = this.originalProducts.filter(product => {
+        const matchesName = product.name.toLowerCase().includes(searchTermLower);
+        const matchesCategory = product.categoriaProducto.toLowerCase().includes(searchTermLower);
+        return matchesName || matchesCategory;
       });
     } else {
-      this.getProducts(); // Si el campo de búsqueda está vacío, muestra todos los productos nuevamente
+      this.products = [...this.originalProducts]; // Restablece la lista de productos a la original si la búsqueda está vacía
     }
   }
-
 }

@@ -6,6 +6,10 @@ export interface Historial{
     cantidadAgregada: number,
     cantidadSaliente: number,
     cantidadAnterior: number,
+    cantidadActual: number,
+    
+    pesoAnterior: number,
+    pesoActual: number,
     producto: any,
     tipo: string,
 } 

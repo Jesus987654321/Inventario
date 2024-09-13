@@ -7,41 +7,43 @@
 
 
 
-  <ion-card mode="ios" color="secondary" class="d-flex-center ion-text-center" *ngIf="!loading && products.length">
+  <ion-card mode="ios" color="secondary" class="d-flex-center ion-text-center" >
     <div>
       <h5>{{products.length}}</h5>
       <h5>Productos Existentes</h5>
     </div>
-    <div>
+    <div *ngIf="!loading && products.length">
       <h5>{{ getProfits() === '0' ? '0 COP' : getProfits() + ' COP' }}</h5>
       <h5>Dinero en inventario</h5>
     </div>
   </ion-card>  
 
 
-
-  <ion-grid>
+<!--  <ion-grid>
     <ion-row class="ion-justify-content-center ion-align-items-center" style="height: 100%;">
       <ion-col size="auto" class="ion-text-center">
         <ion-button id="view-categories-button" fill="outline" routerLink="/main/categoria">Ver categorías</ion-button>
       </ion-col>
     </ion-row>
   </ion-grid>
+  -->
+
 <br>
 
-    <div style="display: flex;" *ngIf="!loading && products.length">
-      <!---------------------------------------Buscador por nombre----------------------------------------------------------->
-      <div style="flex: 1;">
-        <ion-searchbar placeholder="Buscar Producto" [(ngModel)]="searchTerm" style="width: 265px; height: 40px;"(ionChange)="filterProducts()"></ion-searchbar>
-      </div>
-      
-      <!---------------------------------------PDF----------------------------------------------------------->
-      <div style="margin-top: -5px;">
-        <ion-button id="view-categories-button" (click)="pdf()" color="primary">PDF</ion-button>
-      </div>
+<div>
+  <div class="button-container">
+    <!---------------------------------------Buscador----------------------------------------------------------->
+    <div class="search-container">
+      <ion-searchbar class="buscador" placeholder="Buscar Producto" [(ngModel)]="searchTerm" (ionChange)="filterProducts()"></ion-searchbar>
     </div>
-  
 
+    <!---------------------------------------Botones PDF y Categorías----------------------------------------------------------->
+    <div class="pdf-categoria-buttons">
+      <ion-button  *ngIf="!loading && products.length" class="pdf" id="pdf-button" (click)="pdf()" color="primary">PDF</ion-button>
+      <ion-button class="categoria" id="view-categories-button" fill="outline" routerLink="/main/categoria">Ver categorías</ion-button>
+    </div>
+  </div>
+</div>
     <br>
 <div style="clear: both;">
     <!-------------------------------------------------------Productos----------------------------------------------------->
@@ -78,17 +80,16 @@
           
         </ion-label>
         <div>
-          <ion-button color="medium" expand="block" mode="md" class="submit" type="submit" (click)="EntradaProducto(p)">
+          <ion-button color="medium" expand="block" mode="md" class="submit" type="submit" (click)="EntradaProducto(p)" [disabled]="!isConnected">
             Entrada del 
             <br> 
-             Producto
-          </ion-button>
-   
-          <ion-button expand="primary" mode="md" class="submit" type="submit" (click)="SalidaProducto(p)">
+            Producto
+        </ion-button>
+        <ion-button expand="primary" mode="md" class="submit" type="submit" (click)="SalidaProducto(p)" [disabled]="!isConnected">
             Salida del 
             <br>
             Producto
-          </ion-button>
+        </ion-button>
         </div>
         
       </ion-item>

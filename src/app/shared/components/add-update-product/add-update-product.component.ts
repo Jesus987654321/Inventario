@@ -1,4 +1,4 @@
-import { Component, Input, OnInit } from '@angular/core';
+import { Component, Input, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { FormControl, FormGroup, Validators, FormBuilder, } from '@angular/forms';
 import { Product } from 'src/app/models/product.model';
 import { User } from 'src/app/models/user.model';
@@ -37,16 +37,34 @@ export class AddUpdateProductComponent implements OnInit {
   selectedCategory: Categoria | null = null; // Add a property to store selected category
   products: Product[] = []; 
   
+  isConnected: boolean = navigator.onLine; // Default to the current online status
   code: any;
-
+  isSubmitting: boolean = false; // Step 1: Flag to track submission
   constructor(
 
     private firebaseSvc: FirebaseService, 
     private utilsSvc: UtilsService,
-
-  ) {}
+    private changeDetector: ChangeDetectorRef
+  ) {this.initializeNetworkEvents();}
 
   
+  initializeNetworkEvents() {
+    // Check initial connection status
+    this.isConnected = navigator.onLine;
+
+    // Add event listeners for online and offline events
+    window.addEventListener('online', () => {
+      console.log('Conectado a Internet');
+      this.isConnected = true;
+      this.changeDetector.detectChanges(); // Notify Angular of the change
+    });
+
+    window.addEventListener('offline', () => {
+      console.log('Conexión a Internet perdida');
+      this.isConnected = false;
+      this.changeDetector.detectChanges(); // Notify Angular of the change
+    });
+  }
 
   ngOnInit() {
     this.user = this.utilsSvc.getFromLocalStorage('user');
@@ -117,6 +135,9 @@ export class AddUpdateProductComponent implements OnInit {
  // }
 
  submit() {
+  if (this.isSubmitting) return; // Prevent multiple submissions
+  this.isSubmitting = true; // Step 2: Set the flag to true
+
   if (this.form.valid) {
       if (this.form.value.stock_max < this.form.value.stock_min) {
           this.utilsSvc.presentToast({
@@ -126,8 +147,9 @@ export class AddUpdateProductComponent implements OnInit {
               position: 'middle',
               icon: 'alert-circle-outline'
           });
+          this.isSubmitting = false; // Reset the flag if there's an error
       } else {
-          // Limpiar campos según el tipo de producto seleccionado
+          // Clear fields based on the selected product type
           if (this.selectedProductType === 'unidades') {
               delete this.form.value.Peso;
           } else {
@@ -135,11 +157,17 @@ export class AddUpdateProductComponent implements OnInit {
           }
 
           if (this.product) {
-              this.updateProduct();
+              this.updateProduct().finally(() => {
+                  this.isSubmitting = false; // Reset the flag after the update
+              });
           } else {
-              this.createProduct();
+              this.createProduct().finally(() => {
+                  this.isSubmitting = false; // Reset the flag after creation
+              });
           }
       }
+  } else {
+      this.isSubmitting = false; // Reset the flag if the form is invalid
   }
 }
 
@@ -161,10 +189,28 @@ cleanFormValues() {
   });
 }
  
+  async checkConnection() {
+    if (!this.isConnected) {
+      this.utilsSvc.presentToast({
+        message: 'Sin conexión a Internet. Por favor, intente más tarde.',
+        duration: 2000,
+        color: 'danger',
+        position: 'middle',
+        icon: 'alert-circle-outline'
+      });
+      return false; // Return false if there is no connection
+    }
+    return true; // Return true if there is a connection
+  }
 
   //Crear producto
 // Crear producto
 async createProduct() {
+  const connectionStatus = await this.checkConnection();
+  if (!connectionStatus) {
+    return; // Exit if there is no connection
+  }
+
   let path = `productos`;
   const nombreProducto = this.form.get('name').value;
   const NombreExistente = await this.firebaseSvc.getDocumentByField(path, 'name', nombreProducto);
@@ -225,6 +271,11 @@ async createProduct() {
 }
  //Editar producto
  async updateProduct() {
+  const connectionStatus = await this.checkConnection();
+  if (!connectionStatus) {
+    return; // Exit if there is no connection
+  }
+
   //  let path = `usuarios/${this.user.uid}/productos/${this.product.id}`;
   let path = `productos/${this.product.id}`;
     const selectedCategory = this.categorias.find(cat => cat.id === this.form.value.categoriaProducto);

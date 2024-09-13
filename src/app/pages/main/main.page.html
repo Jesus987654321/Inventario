@@ -12,14 +12,16 @@
   
   
     <ion-menu-toggle auto-hide="false" *ngFor="let p of pages">
-
-      <ion-item color="primary"  [ngClass]="{'active': currentPath === p.url}" [routerLink]="p.url" routerDirection="root" detail>
+      <ion-item color="primary" 
+                [ngClass]="{'active': currentPath === p.url}" 
+                [routerLink]="p.url" 
+                routerDirection="root" 
+                detail 
+                (click)="p.url.startsWith('http') ? redirectTo(p.url) : null">
         <ion-icon slot="start" [name]="p.icon"></ion-icon>
         <ion-label>{{p.title}}</ion-label>
       </ion-item> 
-
     </ion-menu-toggle>
-    
   </ion-content>
 
   

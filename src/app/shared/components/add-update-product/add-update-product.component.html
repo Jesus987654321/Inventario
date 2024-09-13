@@ -71,7 +71,7 @@
         <ion-item>
           <ion-select formControlName="categoriaProducto" placeholder="Selecciona una categoría">
             <ion-select-option *ngFor="let categoria of categorias" [value]="categoria.nombre">
-              {{ categoria.nombre }}
+              Categoria: {{ categoria.nombre }}
             </ion-select-option>
           </ion-select>
         </ion-item>
@@ -208,11 +208,12 @@
         </div>
 
           <!---------------------------------------------- Seleccion de selección de opciones ------------------->
-       
+   
         <ion-item>
+          
           <ion-select formControlName="categoriaProducto" placeholder="Selecciona una categoría">
             <ion-select-option *ngFor="let categoria of categorias" [value]="categoria.nombre">
-              {{ categoria.nombre }}
+              Categoria: {{ categoria.nombre }}
             </ion-select-option>
           </ion-select>
         </ion-item>
@@ -294,7 +295,7 @@
     </div>
     
   
-    <ion-button mode="md" class="ion-margin" type="submit" [disabled]="form.invalid" >
+    <ion-button mode="md" class="ion-margin" type="submit" [disabled]="isSubmitting" [disabled]="form.invalid" >
       {{product ? 'Actualizar producto' : 'Agregar Producto'}}
       <ion-icon slot="end" name="checkmark-circle-outline"></ion-icon> 
     </ion-button>
